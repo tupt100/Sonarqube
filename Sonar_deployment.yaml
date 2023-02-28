@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: sonarqube
+  name: sonarqube
+  namespace: sonar
+  annotations:
+    fluentbit.io/exclude: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sonarqube
+  template:
+    metadata:
+      labels:
+        app: sonarqube
+      annotations:
+        fluentbit.io/exclude: "true"
+    spec:
+      securityContext:
+        runAsUser: 1004
+        runAsGroup: 1004
+      containers:
+        - image: sonarqube:9-community
+          name: sonarqube
+          env:
+            - name: SONAR_JDBC_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: sonar-config
+                  key: SONARQUBE_JDBC_URL
+            - name: SONAR_JDBC_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: sonar-config
+                  key: SONARQUBE_JDBC_USERNAME
+            - name: SONAR_JDBC_PASSWORD
+              valueFrom:
+                configMapKeyRef:
+                  name: sonar-config
+                  key: SONARQUBE_JDBC_PASSWORD
+          ports:
+            - containerPort: 9000
+          resources:
+            requests:
+              cpu: 250m
+              memory: 1048Mi
+            limits:
+              cpu: 1500m
+              memory: 6144Mi
+          volumeMounts:
+            - mountPath: /opt/sonarqube/data
+              subPath: data
+              name: sonarqube
+            - mountPath: /opt/sonarqube/extensions
+              subPath: extensions
+              name: sonarqube
+            - mountPath: /opt/sonarqube/logs
+              subPath: logs
+              name: sonarqube
+      initContainers:
+        - name: sysctl
+          image: busybox:1.28
+          securityContext:
+            privileged: true
+          command: [ 'sh', '-c', 'sysctl -w vm.max_map_count=262144' ]
+      terminationGracePeriodSeconds: 3600
+      restartPolicy: Always
+      volumes:
+        - name: sonarqube
+          persistentVolumeClaim:
+            claimName: sonar-pvc
+status: { }
