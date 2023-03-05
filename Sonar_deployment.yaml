@@ -60,6 +60,9 @@ spec:
             - mountPath: /opt/sonarqube/logs
               subPath: logs
               name: sonarqube
+            - mountPath: /opt/sonarqube/extensions/plugins
+              subPath: plugins
+              name: sonarqube
       initContainers:
         - name: sysctl
           image: busybox:1.28
